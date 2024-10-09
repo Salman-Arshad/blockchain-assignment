@@ -1,0 +1,45 @@
+version: '3.8'  # Using a newer version for better features
+services:
+  app:
+    build: .
+    ports:
+      - '${PORT}:${PORT}'
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432  # Ensure the app uses the container's internal port
+      - DB_USER=${DATABASE_USERNAME}
+      - DB_PASSWORD=${DATABASE_PASSWORD}
+      - DB_NAME=${DATABASE_NAME}
+    env_file:
+      - .env
+    networks:
+      - app-network  # Connect to the custom network
+
+  db:
+    image: postgres
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    ports:
+      - '${DATABASE_PORT}:5432'  # Corrected to map host port to container's 5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network  # Connect to the custom network
+
+volumes:
+  db-data:
+
+networks:
+  app-network:
+    driver: bridge  # The default driver; can be omitted as it's the default
